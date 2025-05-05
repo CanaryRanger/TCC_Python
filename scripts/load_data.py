@@ -13,10 +13,10 @@ def load_variable_data(area, variable):
     return df
 
 # Função para combinar os dados de filtros com os dados da variável
-def combine_data_with_filters(filtros_df, variable_df, year=None, municipios=None):
-    # Filtragem prévia por ano, se especificado
-    if year is not None:
-        filtros_df = filtros_df[filtros_df['ANO'] == year]
+def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=None):
+    # Filtragem prévia por anos, se especificado
+    if years is not None and years:
+        filtros_df = filtros_df[filtros_df['ANO'].isin(years)]
     
     # Criar índices para acelerar o merge
     filtros_df = filtros_df.set_index(['CD_MUN', 'ANO'])
@@ -30,3 +30,24 @@ def combine_data_with_filters(filtros_df, variable_df, year=None, municipios=Non
         merged_df = merged_df[merged_df['NM_MUN_filtros'].isin(municipios)]
     
     return merged_df
+
+# Função para combinar dados de múltiplas variáveis
+def load_multiple_variables(area, variables, years=None, municipios=None):
+    filtros_df = load_filters()
+    combined_dfs = []
+    
+    for variable in variables:
+        variable_df = load_variable_data(area, variable)
+        merged_df = combine_data_with_filters(filtros_df, variable_df, years=years, municipios=municipios)
+        # Renomear a coluna VALOR para o nome da variável
+        merged_df = merged_df.rename(columns={'VALOR': variable})
+        # Selecionar apenas as colunas necessárias
+        merged_df = merged_df[['CD_MUN', 'ANO', 'NM_MUN_filtros', variable]]
+        combined_dfs.append(merged_df)
+    
+    # Combinar todos os DataFrames
+    result_df = combined_dfs[0]
+    for df in combined_dfs[1:]:
+        result_df = result_df.merge(df[['CD_MUN', 'ANO', df.columns[-1]]], on=['CD_MUN', 'ANO'], how='outer')
+    
+    return result_df
