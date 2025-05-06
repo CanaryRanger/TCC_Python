@@ -90,39 +90,60 @@ app.layout = dbc.Container([
 analysis_layout = dbc.Card([
     dbc.CardBody([
         html.H3("Gráfico 1"),
-        dcc.Dropdown(id="ano-dropdown", multi=True, placeholder="Selecione os anos"),
         dcc.Dropdown(id="variavel-dropdown", placeholder="Selecione a variável"),
-        dcc.Dropdown(id="municipio-dropdown", multi=True, placeholder="Selecione o município"),
-        dcc.Dropdown(id="graph-type-dropdown-1", 
-                     options=[
-                         {'label': 'Barras', 'value': 'bar'},
-                         {'label': 'Linhas', 'value': 'line'},
-                         {'label': 'Boxplot', 'value': 'box'}
-                     ], 
-                     value='bar'),
-        html.Label("Multiplicador do IQR para Cercas (padrão: 1.5):", 
-                   title="Define a sensibilidade para identificar outliers. Valores menores detectam mais outliers, valores maiores são mais permissivos.",
-                   className="mt-2"),
-        dcc.Input(id="iqr-multiplier-1", type="number", value=1.5, min=0.1, step=0.1, className="mb-3"),
+        html.Div(id="ano-dropdown-container-1", style={'display': 'none'}, children=[
+            dcc.Dropdown(id="ano-dropdown", multi=True, placeholder="Selecione os anos", disabled=True)
+        ]),
+        html.Div(id="municipio-dropdown-container-1", style={'display': 'none'}, children=[
+            dcc.Dropdown(id="municipio-dropdown", multi=True, placeholder="Selecione o município", disabled=True)
+        ]),
+        html.Div(id="graph-type-dropdown-container-1", style={'display': 'none'}, children=[
+            dcc.Dropdown(id="graph-type-dropdown-1", 
+                         options=[
+                             {'label': 'Barras', 'value': 'bar'},
+                             {'label': 'Linhas', 'value': 'line'},
+                             {'label': 'Boxplot', 'value': 'box'}
+                         ], 
+                         value='bar', 
+                         placeholder="Selecione o tipo de gráfico", 
+                         disabled=True)
+        ]),
+        html.Div(id="iqr-multiplier-container-1", style={'display': 'none'}, children=[
+            html.Label("Multiplicador do IQR para Cercas (padrão: 1.5):", 
+                       title="Define a sensibilidade para identificar outliers. Valores menores detectam mais outliers, valores maiores são mais permissivos.",
+                       className="mt-2"),
+            dcc.Input(id="iqr-multiplier-1", type="number", value=1.5, min=0.1, step=0.1, className="mb-3", disabled=True)
+        ]),
         dcc.Graph(id="grafico-1"),
         html.Div(id='estatisticas-1'),
         
         dbc.Button("Adicionar Segundo Gráfico", id="toggle-second-graph", n_clicks=0, color="primary", className="mt-3"),
         html.Div(id="second-graph-container", style={'display': 'none'}, children=[
             html.H3("Gráfico 2", className="mt-4"),
-            dcc.Dropdown(id="ano-dropdown-2", multi=True, placeholder="Selecione os anos"),
-            dcc.Dropdown(id="municipio-dropdown-2", multi=True, placeholder="Selecione o município"),
-            dcc.Dropdown(id="graph-type-dropdown-2", 
-                         options=[
-                             {'label': 'Barras', 'value': 'bar'},
-                             {'label': 'Linhas', 'value': 'line'},
-                             {'label': 'Boxplot', 'value': 'box'}
-                         ], 
-                         value='bar'),
-            html.Label("Multiplicador do IQR para Cercas (padrão: 1.5):", 
-                       title="Define a sensibilidade para identificar outliers. Valores menores detectam mais outliers, valores maiores são mais permissivos.",
-                       className="mt-2"),
-            dcc.Input(id="iqr-multiplier-2", type="number", value=1.5, min=0.1, step=0.1, className="mb-3"),
+            dcc.Dropdown(id="variavel-dropdown-2", placeholder="Selecione a variável"),
+            html.Div(id="ano-dropdown-container-2", style={'display': 'none'}, children=[
+                dcc.Dropdown(id="ano-dropdown-2", multi=True, placeholder="Selecione os anos", disabled=True)
+            ]),
+            html.Div(id="municipio-dropdown-container-2", style={'display': 'none'}, children=[
+                dcc.Dropdown(id="municipio-dropdown-2", multi=True, placeholder="Selecione o município", disabled=True)
+            ]),
+            html.Div(id="graph-type-dropdown-container-2", style={'display': 'none'}, children=[
+                dcc.Dropdown(id="graph-type-dropdown-2", 
+                             options=[
+                                 {'label': 'Barras', 'value': 'bar'},
+                                 {'label': 'Linhas', 'value': 'line'},
+                                 {'label': 'Boxplot', 'value': 'box'}
+                             ], 
+                             value='bar', 
+                             placeholder="Selecione o tipo de gráfico", 
+                             disabled=True)
+            ]),
+            html.Div(id="iqr-multiplier-container-2", style={'display': 'none'}, children=[
+                html.Label("Multiplicador do IQR para Cercas (padrão: 1.5):", 
+                           title="Define a sensibilidade para identificar outliers. Valores menores detectam mais outliers, valores maiores são mais permissivos.",
+                           className="mt-2"),
+                dcc.Input(id="iqr-multiplier-2", type="number", value=1.5, min=0.1, step=0.1, className="mb-3", disabled=True)
+            ]),
             dcc.Graph(id="grafico-2"),
             html.Div(id='estatisticas-2'),
         ])
@@ -179,7 +200,7 @@ def store_filters(pathname):
 
 # Callback para atualizar variáveis no dropdown (análise)
 @app.callback(
-    Output('variavel-dropdown', 'options'),
+    [Output('variavel-dropdown', 'options'), Output('variavel-dropdown-2', 'options')],
     [Input('url', 'pathname')]
 )
 def update_variable_dropdown(pathname):
@@ -187,8 +208,160 @@ def update_variable_dropdown(pathname):
     if section in ['ambiental', 'saude', 'geografia', 'predicao']:
         files = load_section_files(section)
         variable_options = [{'label': file.split('.')[0], 'value': file.split('.')[0]} for file in files]
-        return variable_options
-    return []
+        return variable_options, variable_options
+    return [], []
+
+# Callback para controlar visibilidade e habilitação dos dropdowns (Gráfico 1)
+@app.callback(
+    [
+        Output('ano-dropdown-container-1', 'style'),
+        Output('ano-dropdown', 'disabled'),
+        Output('municipio-dropdown-container-1', 'style'),
+        Output('municipio-dropdown', 'disabled'),
+        Output('graph-type-dropdown-container-1', 'style'),
+        Output('graph-type-dropdown-1', 'disabled'),
+        Output('iqr-multiplier-container-1', 'style'),
+        Output('iqr-multiplier-1', 'disabled'),
+        Output('ano-dropdown', 'value'),
+        Output('municipio-dropdown', 'value'),
+        Output('graph-type-dropdown-1', 'value'),
+        Output('iqr-multiplier-1', 'value')
+    ],
+    [
+        Input('variavel-dropdown', 'value'),
+        Input('ano-dropdown', 'value'),
+        Input('municipio-dropdown', 'value'),
+        Input('graph-type-dropdown-1', 'value')
+    ],
+    [
+        State('ano-dropdown', 'value'),
+        State('municipio-dropdown', 'value'),
+        State('graph-type-dropdown-1', 'value'),
+        State('iqr-multiplier-1', 'value')
+    ]
+)
+def control_dropdowns_1(variavel, anos, municipios, graph_type, 
+                       current_anos, current_municipios, current_graph_type, current_iqr):
+    # Padrões iniciais
+    ano_style = {'display': 'none'}
+    ano_disabled = True
+    municipio_style = {'display': 'none'}
+    municipio_disabled = True
+    graph_type_style = {'display': 'none'}
+    graph_type_disabled = True
+    iqr_style = {'display': 'none'}
+    iqr_disabled = True
+    reset_anos = current_anos
+    reset_municipios = current_municipios
+    reset_graph_type = current_graph_type
+    reset_iqr = current_iqr
+
+    # Lógica de hierarquia
+    if variavel:
+        # Habilitar dropdown de anos
+        ano_style = {'display': 'block'}
+        ano_disabled = False
+        if not anos:
+            # Resetar filtros subsequentes se anos estiver vazio
+            reset_municipios = []
+            reset_graph_type = None
+            reset_iqr = 1.5
+        else:
+            # Habilitar dropdown de municípios
+            municipio_style = {'display': 'block'}
+            municipio_disabled = False
+            if not municipios:
+                # Resetar filtros subsequentes se municípios estiver vazio
+                reset_graph_type = None
+                reset_iqr = 1.5
+            else:
+                # Habilitar dropdown de tipo de gráfico
+                graph_type_style = {'display': 'block'}
+                graph_type_disabled = False
+                if graph_type == 'box':
+                    # Mostrar IQR apenas para boxplot
+                    iqr_style = {'display': 'block'}
+                    iqr_disabled = False
+
+    return (ano_style, ano_disabled, municipio_style, municipio_disabled, 
+            graph_type_style, graph_type_disabled, iqr_style, iqr_disabled,
+            reset_anos, reset_municipios, reset_graph_type, reset_iqr)
+
+# Callback para controlar visibilidade e habilitação dos dropdowns (Gráfico 2)
+@app.callback(
+    [
+        Output('ano-dropdown-container-2', 'style'),
+        Output('ano-dropdown-2', 'disabled'),
+        Output('municipio-dropdown-container-2', 'style'),
+        Output('municipio-dropdown-2', 'disabled'),
+        Output('graph-type-dropdown-container-2', 'style'),
+        Output('graph-type-dropdown-2', 'disabled'),
+        Output('iqr-multiplier-container-2', 'style'),
+        Output('iqr-multiplier-2', 'disabled'),
+        Output('ano-dropdown-2', 'value'),
+        Output('municipio-dropdown-2', 'value'),
+        Output('graph-type-dropdown-2', 'value'),
+        Output('iqr-multiplier-2', 'value')
+    ],
+    [
+        Input('variavel-dropdown-2', 'value'),
+        Input('ano-dropdown-2', 'value'),
+        Input('municipio-dropdown-2', 'value'),
+        Input('graph-type-dropdown-2', 'value')
+    ],
+    [
+        State('ano-dropdown-2', 'value'),
+        State('municipio-dropdown-2', 'value'),
+        State('graph-type-dropdown-2', 'value'),
+        State('iqr-multiplier-2', 'value')
+    ]
+)
+def control_dropdowns_2(variavel, anos, municipios, graph_type, 
+                       current_anos, current_municipios, current_graph_type, current_iqr):
+    # Padrões iniciais
+    ano_style = {'display': 'none'}
+    ano_disabled = True
+    municipio_style = {'display': 'none'}
+    municipio_disabled = True
+    graph_type_style = {'display': 'none'}
+    graph_type_disabled = True
+    iqr_style = {'display': 'none'}
+    iqr_disabled = True
+    reset_anos = current_anos
+    reset_municipios = current_municipios
+    reset_graph_type = current_graph_type
+    reset_iqr = current_iqr
+
+    # Lógica de hierarquia
+    if variavel:
+        # Habilitar dropdown de anos
+        ano_style = {'display': 'block'}
+        ano_disabled = False
+        if not anos:
+            # Resetar filtros subsequentes se anos estiver vazio
+            reset_municipios = []
+            reset_graph_type = None
+            reset_iqr = 1.5
+        else:
+            # Habilitar dropdown de municípios
+            municipio_style = {'display': 'block'}
+            municipio_disabled = False
+            if not municipios:
+                # Resetar filtros subsequentes se municípios estiver vazio
+                reset_graph_type = None
+                reset_iqr = 1.5
+            else:
+                # Habilitar dropdown de tipo de gráfico
+                graph_type_style = {'display': 'block'}
+                graph_type_disabled = False
+                if graph_type == 'box':
+                    # Mostrar IQR apenas para boxplot
+                    iqr_style = {'display': 'block'}
+                    iqr_disabled = False
+
+    return (ano_style, ano_disabled, municipio_style, municipio_disabled, 
+            graph_type_style, graph_type_disabled, iqr_style, iqr_disabled,
+            reset_anos, reset_municipios, reset_graph_type, reset_iqr)
 
 # Callback para atualizar dropdown de anos (análise)
 @app.callback(
@@ -220,12 +393,12 @@ def update_cidade_dropdown(pathname, years_1, years_2, filtros_json):
     city_options_1 = []
     if years_1:
         df_filtered = filtros_df[filtros_df['ANO'].isin(years_1)]
-        city_options_1 = [{'label': city, 'value': city} for city in df_filtered['NM_MUN'].unique()]
+        city_options_1 = [{'label': city, 'value': city} for city in sorted(df_filtered['NM_MUN'].unique())]
     
     city_options_2 = []
     if years_2:
         df_filtered = filtros_df[filtros_df['ANO'].isin(years_2)]
-        city_options_2 = [{'label': city, 'value': city} for city in df_filtered['NM_MUN'].unique()]
+        city_options_2 = [{'label': city, 'value': city} for city in sorted(df_filtered['NM_MUN'].unique())]
     
     return city_options_1, city_options_2
 
@@ -243,55 +416,58 @@ def toggle_second_graph(n_clicks):
 @app.callback(
     [Output('grafico-1', 'figure'), Output('estatisticas-1', 'children'),
      Output('grafico-2', 'figure'), Output('estatisticas-2', 'children')],
-    [Input('url', 'pathname'), Input('ano-dropdown', 'value'), 
-     Input('variavel-dropdown', 'value'), Input('municipio-dropdown', 'value'),
-     Input('ano-dropdown-2', 'value'), Input('municipio-dropdown-2', 'value'),
-     Input('graph-type-dropdown-1', 'value'), Input('graph-type-dropdown-2', 'value'),
-     Input('iqr-multiplier-1', 'value'), Input('iqr-multiplier-2', 'value'),
-     Input('filtros-store', 'data')]
+    [Input('variavel-dropdown', 'value'), Input('ano-dropdown', 'value'), 
+     Input('municipio-dropdown', 'value'), Input('graph-type-dropdown-1', 'value'),
+     Input('iqr-multiplier-1', 'value'), 
+     Input('variavel-dropdown-2', 'value'), Input('ano-dropdown-2', 'value'),
+     Input('municipio-dropdown-2', 'value'), Input('graph-type-dropdown-2', 'value'),
+     Input('iqr-multiplier-2', 'value'),
+     Input('url', 'pathname'), Input('filtros-store', 'data')]
 )
-def update_graph_and_statistics(pathname, years_1, variavel, municipios_1, 
-                               years_2, municipios_2, graph_type_1, graph_type_2, 
-                               iqr_multiplier_1, iqr_multiplier_2, filtros_json):
+def update_graph_and_statistics(variavel_1, years_1, municipios_1, graph_type_1, iqr_multiplier_1,
+                               variavel_2, years_2, municipios_2, graph_type_2, iqr_multiplier_2,
+                               pathname, filtros_json):
     section = pathname.strip('/')
     
     fig_1, stats_1 = {}, ""
     fig_2, stats_2 = {}, ""
     
-    if not section or not variavel or not filtros_json:
+    if not section or not filtros_json:
         return fig_1, stats_1, fig_2, stats_2
 
     filtros_df = pd.read_json(filtros_json, orient='split')
-    variable_df = load_variable_data(section, variavel)
     
-    if years_1 and municipios_1:
+    # Gráfico 1
+    if variavel_1 and years_1 and municipios_1 and graph_type_1:
+        variable_df = load_variable_data(section, variavel_1)
         combined_df_1 = combine_data_with_filters(filtros_df, variable_df, years=years_1, municipios=municipios_1)
         
         if not combined_df_1.empty:
-            stats_1 = calculate_statistics(combined_df_1, 'VALOR', iqr_multiplier=iqr_multiplier_1 or 1.5)
+            iqr_value_1 = iqr_multiplier_1 if graph_type_1 == 'box' and iqr_multiplier_1 else 1.5
+            stats_1 = calculate_statistics(combined_df_1, 'VALOR', iqr_multiplier=iqr_value_1)
+            # Calcular outliers antes de criar o gráfico
+            outliers = combined_df_1[
+                (combined_df_1['VALOR'] < stats_1['lower_fence']) | 
+                (combined_df_1['VALOR'] > stats_1['upper_fence'])
+            ]
             if graph_type_1 == 'bar':
-                fig_1 = px.bar(combined_df_1, x='NM_MUN_filtros', y='VALOR', color='ANO',
-                              title=f'{variavel} - {section} (Anos: {", ".join(map(str, years_1))})',
+                fig_1 = px.bar(combined_df_1, x='ANO', y='VALOR', color='NM_MUN_filtros',
+                              title=f'{variavel_1} - {section} (Municípios: {", ".join(municipios_1)})',
                               barmode='group')
-                # Destacar outliers
-                outliers = combined_df_1[
-                    (combined_df_1['VALOR'] < stats_1['lower_fence']) | 
-                    (combined_df_1['VALOR'] > stats_1['upper_fence'])
-                ]
                 if not outliers.empty:
-                    fig_1.add_scatter(x=outliers['NM_MUN_filtros'], y=outliers['VALOR'], 
+                    fig_1.add_scatter(x=outliers['ANO'], y=outliers['VALOR'], 
                                      mode='markers', marker=dict(color='red', size=10), 
                                      name='Outliers')
             elif graph_type_1 == 'line':
-                fig_1 = px.line(combined_df_1, x='NM_MUN_filtros', y='VALOR', color='ANO',
-                               title=f'{variavel} - {section} (Anos: {", ".join(map(str, years_1))})')
+                fig_1 = px.line(combined_df_1, x='ANO', y='VALOR', color='NM_MUN_filtros',
+                               title=f'{variavel_1} - {section} (Municípios: {", ".join(municipios_1)})')
                 if not outliers.empty:
-                    fig_1.add_scatter(x=outliers['NM_MUN_filtros'], y=outliers['VALOR'], 
+                    fig_1.add_scatter(x=outliers['ANO'], y=outliers['VALOR'], 
                                      mode='markers', marker=dict(color='red', size=10), 
                                      name='Outliers')
             elif graph_type_1 == 'box':
-                fig_1 = px.box(combined_df_1, x='NM_MUN_filtros', y='VALOR', color='ANO',
-                              title=f'{variavel} - {section} (Anos: {", ".join(map(str, years_1))})')
+                fig_1 = px.box(combined_df_1, x='ANO', y='VALOR', color='NM_MUN_filtros',
+                              title=f'{variavel_1} - {section} (Municípios: {", ".join(municipios_1)})')
             
             # Estatísticas e tabela de outliers
             stats_text_1 = [
@@ -302,7 +478,6 @@ def update_graph_and_statistics(pathname, years_1, variavel, municipios_1,
                 html.Div(f"Cerca Inferior: {stats_1['lower_fence']:.2f}" if stats_1['lower_fence'] is not None else "Cerca Inferior: Dados insuficientes"),
                 html.Div(f"Cerca Superior: {stats_1['upper_fence']:.2f}" if stats_1['upper_fence'] is not None else "Cerca Superior: Dados insuficientes"),
             ]
-            # Adicionar tabela de outliers
             if not outliers.empty:
                 stats_text_1.append(
                     html.Div([
@@ -320,34 +495,37 @@ def update_graph_and_statistics(pathname, years_1, variavel, municipios_1,
                 )
             stats_1 = stats_text_1
     
-    if years_2 and municipios_2:
+    # Gráfico 2
+    if variavel_2 and years_2 and municipios_2 and graph_type_2:
+        variable_df = load_variable_data(section, variavel_2)
         combined_df_2 = combine_data_with_filters(filtros_df, variable_df, years=years_2, municipios=municipios_2)
         
         if not combined_df_2.empty:
-            stats_2 = calculate_statistics(combined_df_2, 'VALOR', iqr_multiplier=iqr_multiplier_2 or 1.5)
+            iqr_value_2 = iqr_multiplier_2 if graph_type_2 == 'box' and iqr_multiplier_2 else 1.5
+            stats_2 = calculate_statistics(combined_df_2, 'VALOR', iqr_multiplier=iqr_value_2)
+            # Calcular outliers antes de criar o gráfico
+            outliers = combined_df_2[
+                (combined_df_2['VALOR'] < stats_2['lower_fence']) | 
+                (combined_df_2['VALOR'] > stats_2['upper_fence'])
+            ]
             if graph_type_2 == 'bar':
-                fig_2 = px.bar(combined_df_2, x='NM_MUN_filtros', y='VALOR', color='ANO',
-                              title=f'{variavel} - {section} (Anos: {", ".join(map(str, years_2))})',
+                fig_2 = px.bar(combined_df_2, x='ANO', y='VALOR', color='NM_MUN_filtros',
+                              title=f'{variavel_2} - {section} (Municípios: {", ".join(municipios_2)})',
                               barmode='group')
-                # Destacar outliers
-                outliers = combined_df_2[
-                    (combined_df_2['VALOR'] < stats_2['lower_fence']) | 
-                    (combined_df_2['VALOR'] > stats_2['upper_fence'])
-                ]
                 if not outliers.empty:
-                    fig_2.add_scatter(x=outliers['NM_MUN_filtros'], y=outliers['VALOR'], 
+                    fig_2.add_scatter(x=outliers['ANO'], y=outliers['VALOR'], 
                                      mode='markers', marker=dict(color='red', size=10), 
                                      name='Outliers')
             elif graph_type_2 == 'line':
-                fig_2 = px.line(combined_df_2, x='NM_MUN_filtros', y='VALOR', color='ANO',
-                               title=f'{variavel} - {section} (Anos: {", ".join(map(str, years_2))})')
+                fig_2 = px.line(combined_df_2, x='ANO', y='VALOR', color='NM_MUN_filtros',
+                               title=f'{variavel_2} - {section} (Municípios: {", ".join(municipios_2)})')
                 if not outliers.empty:
-                    fig_2.add_scatter(x=outliers['NM_MUN_filtros'], y=outliers['VALOR'], 
+                    fig_2.add_scatter(x=outliers['ANO'], y=outliers['VALOR'], 
                                      mode='markers', marker=dict(color='red', size=10), 
                                      name='Outliers')
             elif graph_type_2 == 'box':
-                fig_2 = px.box(combined_df_2, x='NM_MUN_filtros', y='VALOR', color='ANO',
-                              title=f'{variavel} - {section} (Anos: {", ".join(map(str, years_2))})')
+                fig_2 = px.box(combined_df_2, x='ANO', y='VALOR', color='NM_MUN_filtros',
+                              title=f'{variavel_2} - {section} (Municípios: {", ".join(municipios_2)})')
             
             # Estatísticas e tabela de outliers
             stats_text_2 = [
@@ -358,7 +536,6 @@ def update_graph_and_statistics(pathname, years_1, variavel, municipios_1,
                 html.Div(f"Cerca Inferior: {stats_2['lower_fence']:.2f}" if stats_2['lower_fence'] is not None else "Cerca Inferior: Dados insuficientes"),
                 html.Div(f"Cerca Superior: {stats_2['upper_fence']:.2f}" if stats_2['upper_fence'] is not None else "Cerca Superior: Dados insuficientes"),
             ]
-            # Adicionar tabela de outliers
             if not outliers.empty:
                 stats_text_2.append(
                     html.Div([
@@ -425,7 +602,7 @@ def update_corr_cidade_dropdown(years, filtros_json):
     
     filtros_df = pd.read_json(filtros_json, orient='split')
     df_filtered = filtros_df[filtros_df['ANO'].isin(years)]
-    city_options = [{'label': city, 'value': city} for city in df_filtered['NM_MUN'].unique()]
+    city_options = [{'label': city, 'value': city} for city in sorted(df_filtered['NM_MUN'].unique())]
     
     return city_options
 
