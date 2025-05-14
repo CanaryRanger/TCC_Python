@@ -7,10 +7,21 @@ from scipy import stats
 import os
 from io import BytesIO
 import dash_bootstrap_components as dbc
+import unicodedata
 from load_data import load_filters, load_variable_data, combine_data_with_filters, load_multiple_variables
 
 # Inicializando o app Dash com tema Bootstrap
 app = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+# Função para normalizar texto (remover acentos)
+def normalize_text(text):
+    """Remove acentos e converte para minúsculas para comparação."""
+    if not text:
+        return ""
+    # Normalizar para decompor caracteres acentuados (ex.: 'ã' -> 'a' + '~')
+    normalized = unicodedata.normalize('NFKD', str(text))
+    # Remover diacríticos (acentos) e converter para minúsculas
+    return ''.join(c for c in normalized if not unicodedata.combining(c)).lower()
 
 # Função para carregar arquivos da seção
 def load_section_files(area):
@@ -95,7 +106,8 @@ analysis_layout = dbc.Card([
             dcc.Dropdown(id="ano-dropdown", multi=True, placeholder="Selecione os anos", disabled=True)
         ]),
         html.Div(id="municipio-dropdown-container-1", style={'display': 'none'}, children=[
-            dcc.Dropdown(id="municipio-dropdown", multi=True, placeholder="Selecione o município", disabled=True)
+            dcc.Dropdown(id="municipio-dropdown", multi=True, placeholder="Selecione o município", 
+                         searchable=True, disabled=True)
         ]),
         html.Div(id="graph-type-dropdown-container-1", style={'display': 'none'}, children=[
             dcc.Dropdown(id="graph-type-dropdown-1", 
@@ -125,7 +137,8 @@ analysis_layout = dbc.Card([
                 dcc.Dropdown(id="ano-dropdown-2", multi=True, placeholder="Selecione os anos", disabled=True)
             ]),
             html.Div(id="municipio-dropdown-container-2", style={'display': 'none'}, children=[
-                dcc.Dropdown(id="municipio-dropdown-2", multi=True, placeholder="Selecione o município", disabled=True)
+                dcc.Dropdown(id="municipio-dropdown-2", multi=True, placeholder="Selecione o município", 
+                             searchable=True, disabled=True)
             ]),
             html.Div(id="graph-type-dropdown-container-2", style={'display': 'none'}, children=[
                 dcc.Dropdown(id="graph-type-dropdown-2", 
@@ -154,10 +167,22 @@ analysis_layout = dbc.Card([
 correlation_layout = dbc.Card([
     dbc.CardBody([
         html.H3("Análise de Correlação"),
-        dcc.Dropdown(id="section-dropdown", placeholder="Selecione a seção"),
-        dcc.Dropdown(id="variables-dropdown", multi=True, placeholder="Selecione as variáveis"),
-        dcc.Dropdown(id="corr-ano-dropdown", multi=True, placeholder="Selecione os anos"),
-        dcc.Dropdown(id="corr-municipio-dropdown", multi=True, placeholder="Selecione os municípios"),
+        dbc.Row([
+            dbc.Col([
+                html.Label("Seção 1"),
+                dcc.Dropdown(id="section-dropdown-1", placeholder="Selecione a seção 1"),
+                html.Label("Variável 1", className="mt-2"),
+                dcc.Dropdown(id="variable-dropdown-1", placeholder="Selecione a variável 1")
+            ], md=6),
+            dbc.Col([
+                html.Label("Seção 2"),
+                dcc.Dropdown(id="section-dropdown-2", placeholder="Selecione a seção 2"),
+                html.Label("Variável 2", className="mt-2"),
+                dcc.Dropdown(id="variable-dropdown-2", placeholder="Selecione a variável 2")
+            ], md=6)
+        ]),
+        dcc.Dropdown(id="corr-years-dropdown", multi=True, placeholder="Selecione os anos"),
+        dcc.Dropdown(id="corr-municipios-dropdown", multi=True, placeholder="Selecione os municípios"),
         dcc.Dropdown(id="corr-method-dropdown", 
                      options=[
                          {'label': 'Pearson', 'value': 'pearson'},
@@ -207,6 +232,8 @@ def update_variable_dropdown(pathname):
     section = pathname.strip('/')
     if section in ['ambiental', 'saude', 'geografia', 'predicao']:
         files = load_section_files(section)
+        # Ordenar alfabeticamente, ignorando maiúsculas/minúsculas
+        files = sorted(files, key=lambda x: str.lower(x))
         variable_options = [{'label': file.split('.')[0], 'value': file.split('.')[0]} for file in files]
         return variable_options, variable_options
     return [], []
@@ -374,7 +401,8 @@ def update_ano_dropdown(pathname, filtros_json):
     
     filtros_df = pd.read_json(filtros_json, orient='split')
     anos = filtros_df['ANO'].unique()
-    ano_options = [{'label': str(ano), 'value': ano} for ano in sorted(anos)]
+    # Ordenar anos numericamente
+    ano_options = [{'label': str(ano), 'value': ano} for ano in sorted(anos, key=int)]
     
     return ano_options, ano_options
 
@@ -393,12 +421,17 @@ def update_cidade_dropdown(pathname, years_1, years_2, filtros_json):
     city_options_1 = []
     if years_1:
         df_filtered = filtros_df[filtros_df['ANO'].isin(years_1)]
-        city_options_1 = [{'label': city, 'value': city} for city in sorted(df_filtered['NM_MUN'].unique())]
+        # Ordenar alfabeticamente, ignorando maiúsculas/minúsculas
+        cities = sorted(df_filtered['NM_MUN'].unique(), key=str.lower)
+        # Criar opções com nomes originais (com acentos)
+        city_options_1 = [{'label': city, 'value': city} for city in cities]
     
     city_options_2 = []
     if years_2:
         df_filtered = filtros_df[filtros_df['ANO'].isin(years_2)]
-        city_options_2 = [{'label': city, 'value': city} for city in sorted(df_filtered['NM_MUN'].unique())]
+        # Ordenar alfabeticamente, ignorando maiúsculas/minúsculas
+        cities = sorted(df_filtered['NM_MUN'].unique(), key=str.lower)
+        city_options_2 = [{'label': city, 'value': city} for city in cities]
     
     return city_options_1, city_options_2
 
@@ -555,30 +588,42 @@ def update_graph_and_statistics(variavel_1, years_1, municipios_1, graph_type_1,
     
     return fig_1, stats_1, fig_2, stats_2
 
-# Callback para atualizar dropdown de seção (correlação)
+# Callback para atualizar dropdowns de seção
 @app.callback(
-    Output('section-dropdown', 'options'),
+    [Output('section-dropdown-1', 'options'), Output('section-dropdown-2', 'options')],
     [Input('url', 'pathname')]
 )
 def update_section_dropdown(pathname):
     sections = ['ambiental', 'saude', 'geografia', 'predicao']
-    return [{'label': section.capitalize(), 'value': section} for section in sections]
+    # Ordenar alfabeticamente
+    sections = sorted(sections, key=str.lower)
+    section_options = [{'label': section.capitalize(), 'value': section} for section in sections]
+    return section_options, section_options
 
-# Callback para atualizar dropdown de variáveis (correlação)
+# Callback para atualizar dropdowns de variáveis
 @app.callback(
-    Output('variables-dropdown', 'options'),
-    [Input('section-dropdown', 'value')]
+    [Output('variable-dropdown-1', 'options'), Output('variable-dropdown-2', 'options')],
+    [Input('section-dropdown-1', 'value'), Input('section-dropdown-2', 'value')]
 )
-def update_variables_dropdown(section):
-    if section:
-        files = load_section_files(section)
-        variable_options = [{'label': file.split('.')[0], 'value': file.split('.')[0]} for file in files]
-        return variable_options
-    return []
+def update_variables_dropdown(section_1, section_2):
+    variable_options_1 = []
+    variable_options_2 = []
+    
+    if section_1:
+        files = load_section_files(section_1)
+        files = sorted(files, key=lambda x: str.lower(x))
+        variable_options_1 = [{'label': file.split('.')[0], 'value': file.split('.')[0]} for file in files]
+    
+    if section_2:
+        files = load_section_files(section_2)
+        files = sorted(files, key=lambda x: str.lower(x))
+        variable_options_2 = [{'label': file.split('.')[0], 'value': file.split('.')[0]} for file in files]
+    
+    return variable_options_1, variable_options_2
 
 # Callback para atualizar dropdown de anos (correlação)
 @app.callback(
-    Output('corr-ano-dropdown', 'options'),
+    Output('corr-years-dropdown', 'options'),
     [Input('filtros-store', 'data')]
 )
 def update_corr_ano_dropdown(filtros_json):
@@ -587,14 +632,14 @@ def update_corr_ano_dropdown(filtros_json):
     
     filtros_df = pd.read_json(filtros_json, orient='split')
     anos = filtros_df['ANO'].unique()
-    ano_options = [{'label': str(ano), 'value': ano} for ano in sorted(anos)]
+    ano_options = [{'label': str(ano), 'value': ano} for ano in sorted(anos, key=int)]
     
     return ano_options
 
 # Callback para atualizar dropdown de municípios (correlação)
 @app.callback(
-    Output('corr-municipio-dropdown', 'options'),
-    [Input('corr-ano-dropdown', 'value'), Input('filtros-store', 'data')]
+    Output('corr-municipios-dropdown', 'options'),
+    [Input('corr-years-dropdown', 'value'), Input('filtros-store', 'data')]
 )
 def update_corr_cidade_dropdown(years, filtros_json):
     if not filtros_json or not years:
@@ -602,29 +647,41 @@ def update_corr_cidade_dropdown(years, filtros_json):
     
     filtros_df = pd.read_json(filtros_json, orient='split')
     df_filtered = filtros_df[filtros_df['ANO'].isin(years)]
-    city_options = [{'label': city, 'value': city} for city in sorted(df_filtered['NM_MUN'].unique())]
+    cities = sorted(df_filtered['NM_MUN'].unique(), key=str.lower)
+    city_options = [{'label': city, 'value': city} for city in cities]
     
     return city_options
 
 # Callback para atualizar heatmap, tabela e armazenar dados
 @app.callback(
     [Output('corr-heatmap', 'figure'), Output('corr-table', 'children'), Output('corr-data-store', 'data')],
-    [Input('section-dropdown', 'value'), Input('variables-dropdown', 'value'),
-     Input('corr-ano-dropdown', 'value'), Input('corr-municipio-dropdown', 'value'),
-     Input('corr-method-dropdown', 'value'), Input('filtros-store', 'data')]
+    [
+        Input('section-dropdown-1', 'value'), 
+        Input('section-dropdown-2', 'value'),
+        Input('variable-dropdown-1', 'value'),
+        Input('variable-dropdown-2', 'value'),
+        Input('corr-years-dropdown', 'value'), 
+        Input('corr-municipios-dropdown', 'value'),
+        Input('corr-method-dropdown', 'value'), 
+        Input('filtros-store', 'data')
+    ]
 )
-def update_correlation_analysis(section, variables, years, municipios, method, filtros_json):
+def update_correlation_analysis(section_1, section_2, variable_1, variable_2, years, municipios, method, filtros_json):
     heatmap_fig = go.Figure()
-    table = html.Div("Selecione seção, variáveis, anos e municípios para calcular a correlação.")
+    table = html.Div("Selecione seções, variáveis, anos e municípios para calcular a correlação.")
     data_json = None
     
-    if not section or not variables or len(variables) < 2 or not years or not municipios or not filtros_json:
+    if not section_1 or not section_2 or not variable_1 or not variable_2 or not years or not municipios or not filtros_json:
         return heatmap_fig, table, data_json
     
-    # Carregar dados combinados
-    df = load_multiple_variables(section, variables, years=years, municipios=municipios)
+    # Criar lista de pares seção/variável
+    section_variable_pairs = [(section_1, variable_1), (section_2, variable_2)]
     
-    # Calcular matriz de correlação
+    # Carregar dados combinados
+    df = load_multiple_variables(section_variable_pairs, years=years, municipios=municipios)
+    
+    # Selecionar apenas as colunas das variáveis
+    variables = [variable_1, variable_2]
     corr_matrix = df[variables].corr(method=method)
     
     # Criar heatmap
@@ -651,28 +708,32 @@ def update_correlation_analysis(section, variables, years, municipios, method, f
     
     return heatmap_fig, table, data_json
 
-# Callback para atualizar scatter plot com base em clique no heatmap
+# Callback para atualizar scatter plot
 @app.callback(
     Output('corr-scatter', 'figure'),
-    [Input('corr-heatmap', 'clickData'), Input('corr-data-store', 'data'),
-     Input('variables-dropdown', 'value')]
+    [
+        Input('corr-heatmap', 'clickData'), 
+        Input('corr-data-store', 'data'),
+        Input('variable-dropdown-1', 'value'),
+        Input('variable-dropdown-2', 'value')
+    ]
 )
-def update_scatter_plot(click_data, data_json, variables):
+def update_scatter_plot(click_data, data_json, variable_1, variable_2):
     scatter_fig = go.Figure()
     
-    if not data_json or not variables or len(variables) < 2:
+    if not data_json or not variable_1 or not variable_2:
         return scatter_fig
     
     df = pd.read_json(data_json, orient='split')
     
-    # Selecionar o primeiro par de variáveis por padrão
-    x_var, y_var = variables[0], variables[1]
+    # Selecionar variáveis
+    x_var, y_var = variable_1, variable_2
     
     # Atualizar com base no clique no heatmap
     if click_data and 'points' in click_data:
         point = click_data['points'][0]
         x_idx, y_idx = point['x'], point['y']
-        if isinstance(x_idx, str) and isinstance(y_idx, str) and x_idx in variables and y_idx in variables:
+        if x_idx in [variable_1, variable_2] and y_idx in [variable_1, variable_2]:
             x_var, y_var = x_idx, y_idx
     
     # Criar scatter plot
@@ -690,14 +751,19 @@ def update_scatter_plot(click_data, data_json, variables):
 @app.callback(
     Output('download-corr-matrix', 'data'),
     [Input('export-corr-matrix', 'n_clicks')],
-    [State('corr-data-store', 'data'), State('variables-dropdown', 'value'),
-     State('corr-method-dropdown', 'value')]
+    [
+        State('corr-data-store', 'data'), 
+        State('variable-dropdown-1', 'value'),
+        State('variable-dropdown-2', 'value'),
+        State('corr-method-dropdown', 'value')
+    ]
 )
-def export_correlation_matrix(n_clicks, data_json, variables, method):
-    if not n_clicks or not data_json or not variables or len(variables) < 2:
+def export_correlation_matrix(n_clicks, data_json, variable_1, variable_2, method):
+    if not n_clicks or not data_json or not variable_1 or not variable_2:
         return None
     
     df = pd.read_json(data_json, orient='split')
+    variables = [variable_1, variable_2]
     corr_matrix = df[variables].corr(method=method)
     
     # Exportar para Excel
@@ -726,6 +792,16 @@ def export_raw_data(n_clicks, data_json):
     
     return dcc.send_bytes(buffer.getvalue(), "raw_data.xlsx")
 
-# Rodar o servidor
+# Renomear app.py para application.py
+app = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
+application = app.server  # Necessário para Elastic Beanstalk
+
+# ... [callbacks e layout inalterados]
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    application.run(host='0.0.0.0', port=8080, debug=False)
+
+
+""" # Rodar o servidor
+if __name__ == '__main__':
+    app.run(debug=True) """

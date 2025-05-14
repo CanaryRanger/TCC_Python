@@ -31,13 +31,13 @@ def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=No
     
     return merged_df
 
-# Função para combinar dados de múltiplas variáveis
-def load_multiple_variables(area, variables, years=None, municipios=None):
+# Função para combinar dados de múltiplas variáveis, permitindo diferentes seções
+def load_multiple_variables(section_variable_pairs, years=None, municipios=None):
     filtros_df = load_filters()
     combined_dfs = []
     
-    for variable in variables:
-        variable_df = load_variable_data(area, variable)
+    for section, variable in section_variable_pairs:
+        variable_df = load_variable_data(section, variable)
         merged_df = combine_data_with_filters(filtros_df, variable_df, years=years, municipios=municipios)
         # Renomear a coluna VALOR para o nome da variável
         merged_df = merged_df.rename(columns={'VALOR': variable})
@@ -48,6 +48,10 @@ def load_multiple_variables(area, variables, years=None, municipios=None):
     # Combinar todos os DataFrames
     result_df = combined_dfs[0]
     for df in combined_dfs[1:]:
-        result_df = result_df.merge(df[['CD_MUN', 'ANO', df.columns[-1]]], on=['CD_MUN', 'ANO'], how='outer')
+        result_df = result_df.merge(
+            df[['CD_MUN', 'ANO', df.columns[-1]]], 
+            on=['CD_MUN', 'ANO'], 
+            how='inner'  # Usar inner para garantir dados comuns
+        )
     
     return result_df
