@@ -1,0 +1,5 @@
+ARN elasticbeanstalk:
+arn:aws:iam::703671935031:role/aws-elasticbeanstalk-service-role
+
+ARN EC2:
+arn:aws:iam::703671935031:role/aws-elasticbeanstalk-ec2-role
