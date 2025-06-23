@@ -18,11 +18,8 @@ def set_key_types(df):
     
     for col in ['CD_MUN', 'ANO']:
         if col in df.columns:
-            # Converte para numérico, transformando erros em NaN.
             df[col] = pd.to_numeric(df[col], errors='coerce')
-            # Remove linhas onde a chave (CD_MUN ou ANO) é inválida/nula.
             df = df.dropna(subset=[col])
-            # Converte para Int64, que é um tipo de inteiro que suporta valores nulos (importante).
             df[col] = df[col].astype('Int64')
     return df
 
@@ -47,14 +44,10 @@ def load_variable_data(area, variable):
     file_path = os.path.join(DATA_PATH, area, f"{variable}.xlsx")
     try:
         df = pd.read_excel(file_path)
-        # Garante que as chaves de junção tenham o tipo correto.
         df = set_key_types(df)
         
-        # >>> NOVA CORREÇÃO: Força a coluna 'VALOR' a ser numérica <<<
         if 'VALOR' in df.columns:
             df['VALOR'] = pd.to_numeric(df['VALOR'], errors='coerce')
-            # Opcional: remover linhas onde o valor se tornou nulo após a conversão.
-            # df = df.dropna(subset=['VALOR'])
             
         return df
     except FileNotFoundError:
@@ -85,25 +78,42 @@ def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=No
     if 'NM_MUN_filtros' in merged_df.columns:
         merged_df = merged_df.rename(columns={'NM_MUN_filtros': 'NM_MUN'})
     
-    # >>> NOVA CORREÇÃO: Reseta o índice para garantir que ele seja limpo e sequencial. <<<
     return merged_df.reset_index(drop=True)
 
 def load_multiple_variables(section_variable_pairs, years=None, municipios=None):
-    """Carrega e combina dados de múltiplas variáveis de diferentes seções."""
+    """
+    Carrega e combina dados de múltiplas variáveis de diferentes seções.
+    Esta função foi otimizada para evitar erros de Merge com colunas duplicadas.
+    """
     filtros_df = load_filters()
     if filtros_df.empty: return pd.DataFrame()
 
     if years:
         filtros_df = filtros_df[filtros_df['ANO'].isin(years)]
     if municipios:
+        # municipios é uma lista, mesmo que com um só item para a correlação
         filtros_df = filtros_df[filtros_df['NM_MUN'].isin(municipios)]
     
+    # O DataFrame de resultado começa apenas com a base de filtros já filtrada.
     result_df = filtros_df.copy()
 
     for section, variable in section_variable_pairs:
         variable_df = load_variable_data(section, variable)
         if not variable_df.empty:
             variable_df = variable_df.rename(columns={'VALOR': variable})
-            result_df = pd.merge(result_df, variable_df, on=['CD_MUN', 'ANO'], how='inner')
+            
+            # >>> A CORREÇÃO PRINCIPAL ESTÁ AQUI <<<
+            # Selecionamos apenas as colunas chave e a coluna de valor da variável.
+            # Isso impede que colunas duplicadas (como 'NM_MUN') entrem no merge.
+            columns_to_merge = ['CD_MUN', 'ANO', variable]
+            
+            if variable in variable_df.columns:
+                result_df = pd.merge(
+                    result_df, 
+                    variable_df[columns_to_merge], # Usamos apenas as colunas que nos interessam
+                    on=['CD_MUN', 'ANO'], 
+                    how='inner'
+                )
 
     return result_df.reset_index(drop=True)
+
