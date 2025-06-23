@@ -26,11 +26,23 @@ def normalize_text(text):
     # Remover diacríticos (acentos) e converter para minúsculas
     return ''.join(c for c in normalized if not unicodedata.combining(c)).lower()
 
-# Função para carregar arquivos da seção
+# # Função para carregar arquivos da seção
+# def load_section_files(area):
+#     section_path = f"../data/dw/{area}/"
+#     files = [f for f in os.listdir(section_path) if f.endswith('.xlsx')]
+#     return files
+
+# Pega o diretório onde o script está rodando
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, 'data', 'dw') # Aponta para a pasta correta
+
 def load_section_files(area):
-    section_path = f"../data/dw/{area}/"
-    files = [f for f in os.listdir(section_path) if f.endswith('.xlsx')]
-    return files
+    """Carrega os nomes dos arquivos de uma determinada seção."""
+    section_path = os.path.join(DATA_DIR, area) # Caminho agora é absoluto
+    if not os.path.exists(section_path):
+        print(f"Aviso: O diretório não foi encontrado: {section_path}")
+        return []
+    return [f for f in os.listdir(section_path) if f.endswith('.xlsx')]
 
 # Função para criar um card de KPI
 def create_kpi_card(title, value, color="primary"):
