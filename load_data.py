@@ -12,17 +12,17 @@ def set_key_types(df):
     """
     Converte as colunas chave ('CD_MUN', 'ANO') para tipos numéricos inteiros.
     Isso previne erros de junção (merge) devido a tipos de dados inconsistentes.
-    Usa 'errors="ignore"' para não quebrar se a coluna não existir.
     """
     if df.empty:
         return df
     
-    # Usamos um loop para converter as colunas individualmente e de forma segura.
     for col in ['CD_MUN', 'ANO']:
         if col in df.columns:
-            # Converte para numérico, transformando erros em NaN, e depois para Int64 que suporta NaN.
+            # Converte para numérico, transformando erros em NaN.
             df[col] = pd.to_numeric(df[col], errors='coerce')
-            df = df.dropna(subset=[col]) # Remove linhas onde a chave é inválida/nula
+            # Remove linhas onde a chave (CD_MUN ou ANO) é inválida/nula.
+            df = df.dropna(subset=[col])
+            # Converte para Int64, que é um tipo de inteiro que suporta valores nulos (importante).
             df[col] = df[col].astype('Int64')
     return df
 
@@ -34,7 +34,7 @@ def load_filters():
     filtros_path = os.path.join(DATA_PATH, "Filtros.xlsx")
     try:
         df = pd.read_excel(filtros_path)
-        return set_key_types(df) # <-- APLICA A CORREÇÃO
+        return set_key_types(df)
     except FileNotFoundError:
         print(f"ERRO: Arquivo de filtros não encontrado em: {filtros_path}")
         return pd.DataFrame(columns=['CD_MUN', 'ANO', 'NM_MUN'])
@@ -47,12 +47,21 @@ def load_variable_data(area, variable):
     file_path = os.path.join(DATA_PATH, area, f"{variable}.xlsx")
     try:
         df = pd.read_excel(file_path)
-        return set_key_types(df) # <-- APLICA A CORREÇÃO
+        # Garante que as chaves de junção tenham o tipo correto.
+        df = set_key_types(df)
+        
+        # >>> NOVA CORREÇÃO: Força a coluna 'VALOR' a ser numérica <<<
+        if 'VALOR' in df.columns:
+            df['VALOR'] = pd.to_numeric(df['VALOR'], errors='coerce')
+            # Opcional: remover linhas onde o valor se tornou nulo após a conversão.
+            # df = df.dropna(subset=['VALOR'])
+            
+        return df
     except FileNotFoundError:
         print(f"ERRO: Arquivo de variável não encontrado em: {file_path}")
         return pd.DataFrame(columns=['CD_MUN', 'ANO', 'VALOR'])
 
-# --- Funções de Combinação de Dados (Agora mais seguras) ---
+# --- Funções de Combinação de Dados (Agora mais robustas) ---
 
 def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=None):
     """
@@ -76,7 +85,8 @@ def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=No
     if 'NM_MUN_filtros' in merged_df.columns:
         merged_df = merged_df.rename(columns={'NM_MUN_filtros': 'NM_MUN'})
     
-    return merged_df
+    # >>> NOVA CORREÇÃO: Reseta o índice para garantir que ele seja limpo e sequencial. <<<
+    return merged_df.reset_index(drop=True)
 
 def load_multiple_variables(section_variable_pairs, years=None, municipios=None):
     """Carrega e combina dados de múltiplas variáveis de diferentes seções."""
@@ -96,4 +106,4 @@ def load_multiple_variables(section_variable_pairs, years=None, municipios=None)
             variable_df = variable_df.rename(columns={'VALOR': variable})
             result_df = pd.merge(result_df, variable_df, on=['CD_MUN', 'ANO'], how='inner')
 
-    return result_df
+    return result_df.reset_index(drop=True)
