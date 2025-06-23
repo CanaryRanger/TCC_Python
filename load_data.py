@@ -16,11 +16,15 @@ def set_key_types(df):
     if df.empty:
         return df
     
+    # Criar uma cópia explícita para evitar modificações no DataFrame original
+    df = df.copy()
+    
     for col in ['CD_MUN', 'ANO']:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            # Usar .loc para atribuição segura
+            df.loc[:, col] = pd.to_numeric(df[col], errors='coerce')
             df = df.dropna(subset=[col])
-            df[col] = df[col].astype('Int64')
+            df.loc[:, col] = df[col].astype('Int64')
     return df
 
 @functools.lru_cache(maxsize=None)
