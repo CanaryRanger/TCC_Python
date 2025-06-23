@@ -23,7 +23,7 @@ def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=No
     variable_df = variable_df.set_index(['CD_MUN', 'ANO'])
     
     # Join com sufixos para evitar conflito de colunas
-    merged_df = filtros_df.join(variable_df, how='left', lsuffix='_filtros', rsuffix='_variavel').reset_index()
+    merged_df = filtros_df.join(variable_df, how='inner', lsuffix='_filtros', rsuffix='_variavel').reset_index()
     
     # Filtrar por municípios, se especificado
     if municipios:
