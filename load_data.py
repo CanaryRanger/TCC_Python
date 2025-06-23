@@ -10,10 +10,10 @@ DATA_PATH = os.path.join(BASE_DIR, 'data', 'dw')
 
 @functools.lru_cache(maxsize=None)
 def load_filters():
-    """
-    Carrega os dados do arquivo de filtros.
-    O decorador @lru_cache garante que o arquivo seja lido do disco apenas uma vez.
-    """
+
+    # Carrega os dados do arquivo de filtros.
+    # O decorador @lru_cache garante que o arquivo seja lido do disco apenas uma vez.
+
     filtros_path = os.path.join(DATA_PATH, "Filtros.xlsx")
     try:
         return pd.read_excel(filtros_path)
@@ -23,10 +23,9 @@ def load_filters():
 
 @functools.lru_cache(maxsize=None)
 def load_variable_data(area, variable):
-    """
-    Carrega os dados de um arquivo de variável específico.
-    O decorador @lru_cache garante que cada arquivo seja lido apenas uma vez.
-    """
+    # Carrega os dados de um arquivo de variável específico.
+    # O decorador @lru_cache garante que cada arquivo seja lido apenas uma vez.
+
     file_path = os.path.join(DATA_PATH, area, f"{variable}.xlsx")
     try:
         return pd.read_excel(file_path)
@@ -37,9 +36,8 @@ def load_variable_data(area, variable):
 # --- Funções de Combinação de Dados ---
 
 def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=None):
-    """
-    Combina os dados de uma variável com os filtros aplicados, tratando nomes de colunas de forma robusta.
-    """
+    # Combina os dados de uma variável com os filtros aplicados, tratando nomes de colunas de forma robusta.
+    
     if filtros_df.empty or variable_df.empty:
         return pd.DataFrame()
 
@@ -67,7 +65,8 @@ def combine_data_with_filters(filtros_df, variable_df, years=None, municipios=No
     return merged_df
 
 def load_multiple_variables(section_variable_pairs, years=None, municipios=None):
-    """Carrega e combina dados de múltiplas variáveis de diferentes seções."""
+    #Carrega e combina dados de múltiplas variáveis de diferentes seções.
+    
     filtros_df = load_filters()
     if filtros_df.empty: return pd.DataFrame()
 

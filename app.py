@@ -726,7 +726,7 @@ def update_graph_and_statistics(variavel_1, year_range_1, municipios_1, graph_ty
         return fig_1, stats_1_content, fig_2, stats_2_content, data_json_1, data_json_2, btn_style_1, btn_style_2
 
     filtros_df = pd.read_json(filtros_json, orient='split')
-    graph_labels = {'NM_MUN_filtros': 'Município', 'VALOR': 'Valor', 'ANO': 'Ano'}
+    graph_labels = {'NM_MUN': 'Município', 'VALOR': 'Valor', 'ANO': 'Ano'}
     kpi_titles = {
         "mean": "Média", "median": "Mediana", "std_dev": "Desvio Padrão",
         "kurtosis": "Curtose", "lower_fence": "Cerca Inferior", "upper_fence": "Cerca Superior"
@@ -744,7 +744,7 @@ def update_graph_and_statistics(variavel_1, year_range_1, municipios_1, graph_ty
 
             # 1. DETECÇÃO INICIAL DE OUTLIERS (sempre acontece)
             all_outliers_1, stats_per_group_1 = [], []
-            for municipality, group_df in combined_df_1.groupby('NM_MUN_filtros'):
+            for municipality, group_df in combined_df_1.groupby('NM_MUN'):
                 iqr_value = iqr_multiplier_1 if graph_type_1 == 'box' and iqr_multiplier_1 else 1.5
                 stats_data = calculate_statistics(group_df.copy(), 'VALOR', iqr_multiplier=iqr_value)
                 stats_data['Município'] = municipality
@@ -776,16 +776,16 @@ def update_graph_and_statistics(variavel_1, year_range_1, municipios_1, graph_ty
 
             # Criação dos Gráficos
             title_1 = f'{variavel_1} - {section}'
-            if graph_type_1 == 'bar': fig_1 = px.bar(combined_df_1, x='ANO', y='VALOR', color='NM_MUN_filtros', title=title_1, barmode='group', labels=graph_labels)
-            elif graph_type_1 == 'line': fig_1 = px.line(combined_df_1, x='ANO', y='VALOR', color='NM_MUN_filtros', title=title_1, labels=graph_labels)
-            elif graph_type_1 == 'box': fig_1 = px.box(combined_df_1, x='ANO', y='VALOR', color='NM_MUN_filtros', title=title_1, labels=graph_labels)
+            if graph_type_1 == 'bar': fig_1 = px.bar(combined_df_1, x='ANO', y='VALOR', color='NM_MUN', title=title_1, barmode='group', labels=graph_labels)
+            elif graph_type_1 == 'line': fig_1 = px.line(combined_df_1, x='ANO', y='VALOR', color='NM_MUN', title=title_1, labels=graph_labels)
+            elif graph_type_1 == 'box': fig_1 = px.box(combined_df_1, x='ANO', y='VALOR', color='NM_MUN', title=title_1, labels=graph_labels)
             
             if not outliers_df_1.empty and graph_type_1 != 'box':
-                fig_1.add_trace(go.Scatter(x=outliers_df_1['ANO'], y=outliers_df_1['VALOR'], mode='markers', marker=dict(color='red', size=10, symbol='x'), name='Outliers', customdata=outliers_df_1['NM_MUN_filtros'], hovertemplate='Município: %{customdata}<br>Ano: %{x}<br>Valor: %{y}<extra></extra>'))
+                fig_1.add_trace(go.Scatter(x=outliers_df_1['ANO'], y=outliers_df_1['VALOR'], mode='markers', marker=dict(color='red', size=10, symbol='x'), name='Outliers', customdata=outliers_df_1['NM_MUN'], hovertemplate='Município: %{customdata}<br>Ano: %{x}<br>Valor: %{y}<extra></extra>'))
             
             if not outliers_df_1.empty:
                 stats_1_content.append(html.H4("Outliers Identificados", className="mt-4"))
-                stats_1_content.append(dbc.Table.from_dataframe(outliers_df_1[['NM_MUN_filtros', 'ANO', 'VALOR']].rename(columns={'NM_MUN_filtros': 'Município', 'ANO': 'Ano', 'VALOR': 'Valor'}), striped=True, bordered=True, hover=True, responsive=True))
+                stats_1_content.append(dbc.Table.from_dataframe(outliers_df_1[['NM_MUN', 'ANO', 'VALOR']].rename(columns={'NM_MUN': 'Município', 'ANO': 'Ano', 'VALOR': 'Valor'}), striped=True, bordered=True, hover=True, responsive=True))
 
     # --- Processamento para o Gráfico 2 (LÓGICA IDÊNTICA) ---
     if variavel_2 and years_2 and municipios_2 and graph_type_2:
@@ -798,7 +798,7 @@ def update_graph_and_statistics(variavel_1, year_range_1, municipios_1, graph_ty
             btn_style_2 = {'display': 'block'}
 
             all_outliers_2, stats_per_group_2 = [], []
-            for municipality, group_df in combined_df_2.groupby('NM_MUN_filtros'):
+            for municipality, group_df in combined_df_2.groupby('NM_MUN'):
                 iqr_value = iqr_multiplier_2 if graph_type_2 == 'box' and iqr_multiplier_2 else 1.5
                 stats_data = calculate_statistics(group_df.copy(), 'VALOR', iqr_multiplier=iqr_value)
                 stats_data['Município'] = municipality
@@ -824,16 +824,16 @@ def update_graph_and_statistics(variavel_1, year_range_1, municipios_1, graph_ty
                     stats_2_content.append(dbc.Table.from_dataframe(stats_df_2_ordered.rename(columns={'mean': 'Média', 'median': 'Mediana', 'std_dev': 'Desvio Padrão', 'kurtosis': 'Curtose', 'lower_fence': 'Cerca Inf.', 'upper_fence': 'Cerca Sup.'}).round(2), striped=True, bordered=True, hover=True, responsive=True))
 
             title_2 = f'{variavel_2} - {section}'
-            if graph_type_2 == 'bar': fig_2 = px.bar(combined_df_2, x='ANO', y='VALOR', color='NM_MUN_filtros', title=title_2, barmode='group', labels=graph_labels)
-            elif graph_type_2 == 'line': fig_2 = px.line(combined_df_2, x='ANO', y='VALOR', color='NM_MUN_filtros', title=title_2, labels=graph_labels)
-            elif graph_type_2 == 'box': fig_2 = px.box(combined_df_2, x='ANO', y='VALOR', color='NM_MUN_filtros', title=title_2, labels=graph_labels)
+            if graph_type_2 == 'bar': fig_2 = px.bar(combined_df_2, x='ANO', y='VALOR', color='NM_MUN', title=title_2, barmode='group', labels=graph_labels)
+            elif graph_type_2 == 'line': fig_2 = px.line(combined_df_2, x='ANO', y='VALOR', color='NM_MUN', title=title_2, labels=graph_labels)
+            elif graph_type_2 == 'box': fig_2 = px.box(combined_df_2, x='ANO', y='VALOR', color='NM_MUN', title=title_2, labels=graph_labels)
             
             if not outliers_df_2.empty and graph_type_2 != 'box':
-                fig_2.add_trace(go.Scatter(x=outliers_df_2['ANO'], y=outliers_df_2['VALOR'], mode='markers', marker=dict(color='red', size=10, symbol='x'), name='Outliers', customdata=outliers_df_2['NM_MUN_filtros'], hovertemplate='Município: %{customdata}<br>Ano: %{x}<br>Valor: %{y}<extra></extra>'))
+                fig_2.add_trace(go.Scatter(x=outliers_df_2['ANO'], y=outliers_df_2['VALOR'], mode='markers', marker=dict(color='red', size=10, symbol='x'), name='Outliers', customdata=outliers_df_2['NM_MUN'], hovertemplate='Município: %{customdata}<br>Ano: %{x}<br>Valor: %{y}<extra></extra>'))
             
             if not outliers_df_2.empty:
                 stats_2_content.append(html.H4("Outliers Identificados", className="mt-4"))
-                stats_2_content.append(dbc.Table.from_dataframe(outliers_df_2[['NM_MUN_filtros', 'ANO', 'VALOR']].rename(columns={'NM_MUN_filtros': 'Município', 'ANO': 'Ano', 'VALOR': 'Valor'}), striped=True, bordered=True, hover=True, responsive=True))
+                stats_2_content.append(dbc.Table.from_dataframe(outliers_df_2[['NM_MUN', 'ANO', 'VALOR']].rename(columns={'NM_MUN': 'Município', 'ANO': 'Ano', 'VALOR': 'Valor'}), striped=True, bordered=True, hover=True, responsive=True))
             
     return fig_1, stats_1_content, fig_2, stats_2_content, data_json_1, data_json_2, btn_style_1, btn_style_2
 
@@ -1232,7 +1232,7 @@ def export_raw_data(n_clicks, data_json):
                                     ## -- FIM DA SEÇÃO DE CORRELAÇÃO -- ##
 
 if __name__ == '__main__':
-    application.run(host='0.0.0.0', port=8080, debug=False)
+    app.run(host='0.0.0.0', port=8080, debug=False)
 
 
 """ # Rodar o servidor
