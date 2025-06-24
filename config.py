@@ -1,3 +1,4 @@
 import dash_bootstrap_components as dbc
 
-BOOTSTRAP_THEME = dbc.themes.BOOTSTRAP
+url_theme_light = dbc.themes.FLATLY
+url_theme_dark = dbc.themes.DARKLY

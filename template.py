@@ -45,11 +45,11 @@ def get_main_layout():
         # Navbar para dispositivos móveis
         dbc.NavbarSimple(
             children=[
-                dbc.NavItem(dbc.NavLink("Sobre", href="/")),
+                dbc.NavItem(dbc.NavLink("Home", href="/")),
                 dbc.NavItem(dbc.NavLink("Ambiental", href="/ambiental")),
                 dbc.NavItem(dbc.NavLink("Saúde", href="/saude")),
                 dbc.NavItem(dbc.NavLink("Geografia", href="/geografia")),
-                dbc.NavItem(dbc.NavLink("Predição", href="/predicao")),
+                dbc.NavItem(dbc.NavLink("Predição", href="")),
                 dbc.NavItem(dbc.NavLink("Correlação", href="/correlacao")),
             ],
             brand="Menu",
@@ -64,22 +64,23 @@ def get_main_layout():
             dbc.Col([
                 html.H2("Menu", className="text-center"),
                 dbc.Nav([
-                    dbc.NavLink("Home", href="/", active="exact"),
+                    dbc.NavLink("Home", href="/", active="exact", className="my-3"),
                     dbc.NavLink("Ambiental", href="/ambiental", active="exact"),
                     dbc.NavLink("Saúde", href="/saude", active="exact"),
                     dbc.NavLink("Geografia", href="/geografia", active="exact"),
-                    dbc.NavLink("Predição", href="/predicao", active="exact"),
+                    dbc.NavLink("Predição", href=""),
                     dbc.NavLink("Correlação", href="/correlacao", active="exact"),
-                ], vertical=True, pills=True),
+                ], vertical=True, pills=True, className="p-3"),
             ], md=2, className="bg-light d-none d-md-block"),  # Mostrar apenas em desktops
 
             # Conteúdo principal
             dbc.Col([
-                html.H1("Dashboard Interativo", className="text-center my-3"),
+                html.H1("", className="text-center my-3"),
                 html.Div(id='page-content')
             ], md=10)
-        ])
-    ], fluid=True)
+        ], className="flex-grow-1")
+    ], fluid=True
+     , className="vh-100 d-flex flex-column")
 
 # Função para criar o layout da Home/Sobre page
 def get_sobre_layout():
@@ -87,7 +88,7 @@ def get_sobre_layout():
         dbc.Row(
             dbc.Col(
                 html.Div([
-                    html.H1("Bem-vindo ao Dashboard Interativo", className="text-primary text-center mt-4 mb-3"),
+                    html.H1("Bem-vindo ao Dashboard Brasil", className="text-primary text-center mt-4 mb-3"),
                     html.P(
                         "Uma ferramenta para análise exploratória de dados ambientais, de saúde e geográficos.",
                         className="lead text-center"
@@ -106,13 +107,13 @@ def get_sobre_layout():
                 # MUDANÇA: Trocado dbc.ListGroup por dbc.Nav para uma navegação mais limpa e funcional
                 dbc.Nav([
                     # IMPORTANTE: external_link=True força a rolagem da página pelo navegador
-                    dbc.NavLink("Objetivos do Projeto", href="#objetivos", external_link=True),
-                    dbc.NavLink("Funcionalidades", href="#funcionalidades", external_link=True),
-                    dbc.NavLink("Como Utilizar", href="#como-utilizar", external_link=True),
-                    dbc.NavLink("Cálculos Estatísticos", href="#calculos", external_link=True),
-                    dbc.NavLink("O que é o IQR?", href="#iqr", external_link=True),
-                    dbc.NavLink("Quem Somos", href="#quem-somos", external_link=True),
-                ], vertical=True, pills=True, className="bg-light p-2 rounded"), # Estilo de "pílulas" para visual melhor
+                    dbc.NavLink("Objetivos do Projeto", href="#objetivos", external_link=True, className="text-white"),
+                    dbc.NavLink("Funcionalidades", href="#funcionalidades", external_link=True, className="text-white"),
+                    dbc.NavLink("Como Utilizar", href="#como-utilizar", external_link=True, className="text-white"),
+                    dbc.NavLink("Cálculos Estatísticos", href="#calculos", external_link=True, className="text-white"),
+                    dbc.NavLink("O que é o IQR?", href="#iqr", external_link=True, className="text-white"),
+                    dbc.NavLink("Quem Somos", href="#quem-somos", external_link=True, className="text-white"),
+                ], vertical=True, pills=True, className="bg-dark p-2 rounded"), # Estilo de "pílulas" para visual melhor
             ], md=3, className="mb-4"),
 
             # Coluna da direita com o conteúdo
@@ -311,8 +312,8 @@ def get_correlation_layout():
                 dcc.Graph(id="corr-scatter"),
 
                 dbc.Row([
-                    dbc.Col(dbc.Button("Exportar Matriz de Correlação", id="export-corr-matrix", color="secondary", outline=True, className="w-100 mt-2"), md=6),
-                    dbc.Col(dbc.Button("Exportar Dados Brutos", id="export-raw-data", color="secondary", outline=True, className="w-100 mt-2"), md=6),
+                    dbc.Col(dbc.Button("Exportar Matriz de Correlação", id="export-corr-matrix", color="info", outline=True, className="w-100 mt-2"), md=6),
+                    dbc.Col(dbc.Button("Exportar Dados Brutos", id="export-raw-data", color="warning", outline=True, className="w-100 mt-2"), md=6),
                 ], className="mt-5"),
             ])
         ])
