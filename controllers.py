@@ -292,7 +292,9 @@ def register_callbacks(app):
         Output('analysis-data-store-1', 'data'),
         Output('analysis-data-store-2', 'data'),
         Output('export-analysis-data-1', 'style'),
-        Output('export-analysis-data-2', 'style')
+        Output('export-analysis-data-2', 'style'),
+        Output('loading-spinner-1', 'style'),
+        Output('loading-spinner-2', 'style')
         ],
         [Input('variavel-dropdown', 'value'), 
         Input('ano-rangeslider', 'value'),
@@ -311,6 +313,10 @@ def register_callbacks(app):
                                     variavel_2, year_range_2, municipios_2, graph_type_2, iqr_multiplier_2,
                                     pathname, filtros_json):
 
+        # Exibe os spinners enquanto processa
+        loading_style_1 = {'display': 'block', 'position': 'absolute', 'top': '50%', 'left': '50%', 'transform': 'translate(-50%, -50%)', 'z-index': 1000}
+        loading_style_2 = {'display': 'block', 'position': 'absolute', 'top': '50%', 'left': '50%', 'transform': 'translate(-50%, -50%)', 'z-index': 1000}
+
         years_1 = list(range(year_range_1[0], year_range_1[1] + 1)) if year_range_1 else None
         years_2 = list(range(year_range_2[0], year_range_2[1] + 1)) if year_range_2 else None
         section = pathname.strip('/')
@@ -323,7 +329,7 @@ def register_callbacks(app):
         btn_style_2 = {'display': 'none'}
         
         if not section or not filtros_json:
-            return fig_1, stats_1_content, fig_2, stats_2_content, data_json_1, data_json_2, btn_style_1, btn_style_2
+            return fig_1, stats_1_content, fig_2, stats_2_content, data_json_1, data_json_2, btn_style_1, btn_style_2, {'display': 'none'}, {'display': 'none'}
 
         filtros_df = pd.read_json(filtros_json, orient='split')
         graph_labels = {'NM_MUN': 'Município', 'VALOR': 'Valor', 'ANO': 'Ano'}
@@ -435,7 +441,7 @@ def register_callbacks(app):
                     stats_2_content.append(html.H4("Outliers Identificados", className="mt-4"))
                     stats_2_content.append(dbc.Table.from_dataframe(outliers_df_2[['NM_MUN', 'ANO', 'VALOR']].rename(columns={'NM_MUN': 'Município', 'ANO': 'Ano', 'VALOR': 'Valor'}), striped=True, bordered=True, hover=True, responsive=True))
                 
-        return fig_1, stats_1_content, fig_2, stats_2_content, data_json_1, data_json_2, btn_style_1, btn_style_2
+        return fig_1, stats_1_content, fig_2, stats_2_content, data_json_1, data_json_2, btn_style_1, btn_style_2, {'display': 'none'}, {'display': 'none'}
 
     # Callback para atualizar dropdowns de seção
     @app.callback(
@@ -667,7 +673,8 @@ def register_callbacks(app):
         Output('scatter-y-axis-dropdown', 'options'),
         Output('scatter-x-axis-dropdown', 'value'),
         Output('scatter-y-axis-dropdown', 'value'),
-        Output('correlation-results-container', 'style')],
+        Output('correlation-results-container', 'style'),
+        Output('corr-spinner', 'style')],
         [Input('variable-dropdown-multi', 'value'),
         Input('corr-municipios-dropdown', 'value'),
         Input('corr-ano-rangeslider', 'value'),
@@ -680,10 +687,11 @@ def register_callbacks(app):
         x_val, y_val = None, None
         data_json = None
         results_style = {'display': 'none'}
+        corr_spinner_style = {'display': 'block', 'position': 'absolute', 'top': '50%', 'left': '50%', 'transform': 'translate(-50%, -50%)', 'z-index': 1000}
 
         # Condição de guarda: precisamos de ao menos 2 variáveis e todos os outros filtros
         if not selected_variables or len(selected_variables) < 2 or not municipio or not years_range:
-            return heatmap_fig, data_json, scatter_options, scatter_options, x_val, y_val, results_style
+            return heatmap_fig, data_json, scatter_options, scatter_options, x_val, y_val, results_style, {'display': 'none'}
 
         years = list(range(years_range[0], years_range[1] + 1))
         
@@ -715,7 +723,7 @@ def register_callbacks(app):
         scatter_options = [{'label': var, 'value': var} for var in clean_variable_names]
         x_val, y_val = clean_variable_names[0], clean_variable_names[1]
         results_style = {'display': 'block'}
-        return heatmap_fig, data_json, scatter_options, scatter_options, x_val, y_val, results_style
+        return heatmap_fig, data_json, scatter_options, scatter_options, x_val, y_val, results_style, {'display': 'none'}
 
 
     # Callback para atualizar scatter plot
@@ -759,16 +767,21 @@ def register_callbacks(app):
 
     # Callback para atualizar scatter plot com linha de tendência
     @app.callback(
-        Output('corr-scatter', 'figure'),
+        [Output('corr-scatter', 'figure'),
+        Output('scat-spinner', 'style')],
         [Input('corr-data-store', 'data'),
         Input('scatter-x-axis-dropdown', 'value'),
         Input('scatter-y-axis-dropdown', 'value')]
     )
     def update_scatter_plot(data_json, x_var, y_var):
+
+        scat_spinner_style = {'display': 'block', 'position': 'absolute', 'top': '50%', 'left': '50%', 'transform': 'translate(-50%, -50%)', 'z-index': 1000}
+
         if not all([data_json, x_var, y_var]):
-            return go.Figure()
+            return go.Figure(), {'display': 'none'}
         
         df = pd.read_json(data_json, orient='split')
+        
 
         # Criar scatter plot com linha de tendência
         scatter_fig = px.scatter(
@@ -782,33 +795,41 @@ def register_callbacks(app):
             trendline_color_override="red"
         )
         
-        return scatter_fig
+        return scatter_fig, {'display': 'none'}
 
     # Callback para exportar matriz de correlação
     @app.callback(
         Output('download-corr-matrix', 'data'),
         [Input('export-corr-matrix', 'n_clicks')],
         [
-            State('corr-data-store', 'data'), 
-            State('variable-dropdown-1', 'value'),
-            State('variable-dropdown-2', 'value'),
+            State('corr-data-store', 'data'),
+            State('variable-dropdown-multi', 'value'),
             State('corr-method-dropdown', 'value')
-        ]
+        ],
+        prevent_initial_call=True
     )
-    def export_correlation_matrix(n_clicks, data_json, variable_1, variable_2, method):
-        if not n_clicks or not data_json or not variable_1 or not variable_2:
+    def export_correlation_matrix(n_clicks, data_json, selected_variables, method):
+        if not n_clicks or not data_json or not selected_variables or len(selected_variables) < 2:
             return None
         
+        # Carrega os dados brutos
         df = pd.read_json(data_json, orient='split')
-        variables = [variable_1, variable_2]
-        corr_matrix = df[variables].corr(method=method)
         
-        # Exportar para Excel
+        # Extrai os nomes das variáveis limpos (removendo a parte da seção)
+        clean_variable_names = [var.split('|')[1] for var in selected_variables]
+        
+        # Calcula a matriz de correlação apenas para as variáveis selecionadas
+        corr_matrix = df[clean_variable_names].corr(method=method)
+        
+        # Exporta para Excel
         buffer = BytesIO()
-        corr_matrix.to_excel(buffer, engine='openpyxl')
+        corr_matrix.to_excel(buffer, engine='openpyxl', index=True)
         buffer.seek(0)
         
-        return dcc.send_bytes(buffer.getvalue(), "correlation_matrix.xlsx")
+        # Nome do arquivo baseado no método de correlação
+        filename = f"correlation_matrix_{method}.xlsx"
+        
+        return dcc.send_bytes(buffer.getvalue(), filename)
 
     # Callback para exportar dados brutos
     @app.callback(

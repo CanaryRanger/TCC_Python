@@ -207,8 +207,18 @@ def get_analysis_layout():
                 dcc.Input(id="iqr-multiplier-1", type="number", value=1.5, min=0.1, step=0.1, disabled=True)
             ], className="mb-4"), # Margem um pouco maior antes do gráfico
 
-            dcc.Graph(id="grafico-1"),
-            html.Div(id='estatisticas-1', className="mt-4"), # Margem acima dos KPIs
+            # Área de Gráficos e Estatísticas com Spinner
+            html.Div([
+                dbc.Spinner(
+                    html.Div(id='loading-spinner-1', style={'display': 'none'}),  # Spinner para gráfico 1
+                    size="md",
+                    color="primary",
+                    type="border",
+                    fullscreen=False  # Não cobre toda a tela, apenas a área local
+                ),
+                dcc.Graph(id="grafico-1"),
+                html.Div(id='estatisticas-1', className="mt-4"), # Margem acima dos KPIS
+            ], className="position-relative"),  # Posicionamento relativo para o spinner
 
             # Botão de Exportação para o Gráfico 1
             dbc.Button("Exportar Dados do Gráfico", id="export-analysis-data-1", color="success", outline=True, className="mt-3 w-100", style={'display': 'none'}),    
@@ -249,8 +259,18 @@ def get_analysis_layout():
                     dcc.Input(id="iqr-multiplier-2", type="number", value=1.5, min=0.1, step=0.1, disabled=True)
                 ], className="mb-4"),
 
-                dcc.Graph(id="grafico-2"),
-                html.Div(id='estatisticas-2', className="mt-4"),
+                # Mesma lógica de área de gráfico que 1.
+                html.Div([
+                    dbc.Spinner(
+                        html.Div(id='loading-spinner-2', style={'display': 'none'}),  # Spinner para gráfico 2
+                        size="md",
+                        color="primary",
+                        type="border",
+                        fullscreen=False
+                    ),
+                    dcc.Graph(id="grafico-2"),
+                    html.Div(id='estatisticas-2', className="mt-4"),
+                ], className="position-relative"),
 
                 dbc.Button("Exportar Dados do Gráfico", id="export-analysis-data-2", color="success", outline=True, className="mt-3 w-100", style={'display': 'none'}),
             ])
@@ -297,6 +317,15 @@ def get_correlation_layout():
             html.Hr(),
 
             # --- SEÇÃO DE RESULTADOS (Controlada por callback) ---
+            html.Div([
+                dbc.Spinner(
+                html.Div(id='corr-spinner', style={'display': 'none'}),  # Spinner para gráfico 1
+                    size="md",
+                    color="primary",
+                    type="border",
+                    fullscreen=False  # Não cobre toda a tela, apenas a área local
+                ),
+            ], className="mt-4 position-relative"),
             html.Div(id='correlation-results-container', style={'display': 'none'}, children=[
                 html.Div([
                     html.H4("Matriz de Correlação", className="text-center"),
@@ -309,7 +338,17 @@ def get_correlation_layout():
                     dbc.Col(dcc.Dropdown(id='scatter-x-axis-dropdown', placeholder='Selecione a variável do Eixo X'), md=6),
                     dbc.Col(dcc.Dropdown(id='scatter-y-axis-dropdown', placeholder='Selecione a variável do Eixo Y'), md=6)
                 ], className="mt-2 mb-3"),
-                dcc.Graph(id="corr-scatter"),
+                html.Div([
+                    dbc.Spinner(
+                    html.Div(id='scat-spinner', style={'display': 'none'}),  # Spinner para gráfico 1
+                    size="md",
+                    color="primary",
+                    type="border",
+                    fullscreen=False  # Não cobre toda a tela, apenas a área local
+                    ),
+                    dcc.Graph(id="corr-scatter"),
+                ], className="mt-4 position-relative"),
+                
 
                 dbc.Row([
                     dbc.Col(dbc.Button("Exportar Matriz de Correlação", id="export-corr-matrix", color="info", outline=True, className="w-100 mt-2"), md=6),
